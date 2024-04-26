@@ -1,0 +1,101 @@
+import pygame
+import sys
+import random
+
+pygame.init()
+
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 600
+WINDOW_SIZE = (WINDOW_WIDTH, WINDOW_HEIGHT)
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+
+pygame.mixer.init()
+bullet_sound = pygame.mixer.Sound("bullet.wav")
+collision_sound = pygame.mixer.Sound("collision.wav")
+
+screen = pygame.display.set_mode(WINDOW_SIZE)
+pygame.display.set_caption("Космічні Пригоди")
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((50, 50))
+        self.image.fill(WHITE)
+        self.rect = self.image.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2))
+        self.speed = 5
+
+    def update(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_w]:
+            self.rect.y -= self.speed
+        if keys[pygame.K_s]:
+            self.rect.y += self.speed
+        if keys[pygame.K_a]:
+            self.rect.x -= self.speed
+        if keys[pygame.K_d]:
+            self.rect.x += self.speed
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((30, 30))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect(center=(random.randint(0, WINDOW_WIDTH), 0))
+        self.speed = random.randint(1, 3)
+
+    def update(self):
+        self.rect.y += self.speed
+        if self.rect.top > WINDOW_HEIGHT:
+            self.rect.bottom = 0
+            self.rect.centerx = random.randint(0, WINDOW_WIDTH)
+            self.speed = random.randint(1, 3)
+
+all_sprites = pygame.sprite.Group()
+enemies = pygame.sprite.Group()
+
+player = Player()
+all_sprites.add(player)
+
+running = True
+level = 1
+score = 0
+clock = pygame.time.Clock()
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    if pygame.time.get_ticks() % 120 == 0:
+        enemy = Enemy()
+        all_sprites.add(enemy)
+        enemies.add(enemy)
+
+    all_sprites.update()
+
+    hits = pygame.sprite.spritecollide(player, enemies, False)
+    if hits:
+        collision_sound.play()
+        score -= 10
+        for enemy in hits:
+            enemy.kill()
+
+    if len(enemies) == 0:
+        level += 1
+        score += 100
+
+    font = pygame.font.Font(None, 36)
+    text = font.render(f"Level: {level}  Score: {score}", True, WHITE)
+    text_rect = text.get_rect(center=(WINDOW_WIDTH // 2, 50))
+
+    screen.fill(BLACK)
+    all_sprites.draw(screen)
+    screen.blit(text, text_rect)
+    pygame.display.flip()
+
+    clock.tick(60)
+
+pygame.quit()
+sys.exit()
